@@ -3,8 +3,11 @@ SOURCEDIR=./src
 
 all: premconverter.macos premconverter.linux64 premconverter.linux32 premconverter.windows
 clean:
-	rm -rf $(BINDIR)/premconverter.*
+	cd $(SOURCEDIR); rm -rf $(BINDIR)/premconverter.*
 
+test:
+	cd $(SOURCEDIR); go test ./...
+    
 premconverter.macos: $(SOURCEDIR)/main.go $(SOURCEDIR)/reader/reader.go
 	cd $(SOURCEDIR); GOOS=darwin go build -o $(BINDIR)/premconverter.macos
 
