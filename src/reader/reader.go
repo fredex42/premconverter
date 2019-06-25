@@ -7,11 +7,9 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math"
 	"os"
 	"regexp"
 	"strconv"
-	"time"
 )
 
 const REPLACEMENT_VERSION = 35
@@ -89,65 +87,80 @@ func Scan(reader io.Reader, writer io.Writer) (int, error) {
 
 	lineCounter := 0
 
-	var zeroLengthReadsCount int = 0
+	//var zeroLengthReadsCount int = 0
+	var foundIt = false
 
 	//it seems that sometimes we get zero-length reads in the middle of the file.  Even 10 sometimes.
 	//so, we must keep looping till we know that the whole stream is done.
 	//if we have 1,000 zero-length reads, then we conclude that it's done.
 	for true {
-		scanner := bufio.NewScanner(reader)
-		scanner.Split(bufio.ScanLines)
-
-		lineCounterStart := lineCounter
-
-		for scanner.Scan() {
-			lineCounter += 1
-			//fmt.Printf("debug: got line %s\n", scanner.Text())
-
-			matches := matcher.FindStringSubmatch(scanner.Text())
-			if matches == nil {
-				//log.Print("debug: got no matches\n")
-				_, err := writer.Write(scanner.Bytes())
-				if err != nil {
-					log.Fatal(err)
-					return -1, err
-				}
-				_, otherErr := writer.Write([]byte("\n"))
-				if otherErr != nil {
-					log.Fatal(err)
-					return -1, err
-				}
+		if foundIt {
+			log.Print("Version tag has been upgraded, performing binary copy of the rest of the file.")
+			written, err := io.Copy(writer, reader)
+			if err != nil {
+				log.Fatalf("Could not copy remainder of file: %s", err)
+				return lineCounter, err
 			} else {
-				//log.Printf("debug: matches: %s", matches)
-				version, err := strconv.ParseInt(matches[3], 10, 32)
-				if err != nil {
-					log.Fatalf("Detected version was not a number, got %s\n", matches[3])
-					return lineCounter, err
+				if written == 0 {
+					break
 				}
-				log.Printf("ObjectID is %s, classID is %s, version is %d\n", matches[1], matches[2], version)
-				if version == REPLACEMENT_VERSION {
-					log.Printf("This file does not need updating.")
-					//FIXME: should add custom error here.
-				}
-				replacementString := fmt.Sprintf(`<Project ObjectID="%s" ClassID="%s" Version="%d">`+"\n", matches[1], matches[2], REPLACEMENT_VERSION)
-				replacementLine := matcher.ReplaceAllString(scanner.Text(), replacementString)
-				_, writeErr := writer.Write([]byte(replacementLine))
-				if writeErr != nil {
-					log.Fatal("Could not write output: ", writeErr)
-				}
+				log.Printf("Copied %d (uncompressed) bytes", written)
 			}
-			if scanner.Text() == "<//PremiereData>" {
-				break
-			}
-		}
-
-		if lineCounterStart == lineCounter {
-			log.Printf("Got zero-length read at line %d, tried %d times", lineCounterStart, zeroLengthReadsCount)
-			zeroLengthReadsCount += 1
-			delayInMs := math.Pow(1.5, float64(zeroLengthReadsCount))
-			time.Sleep(time.Duration(delayInMs * 1000))
 		} else {
-			zeroLengthReadsCount = 0
+			scanner := bufio.NewScanner(reader)
+			scanner.Split(bufio.ScanLines)
+			initialBuffer := make([]byte, 102400)
+			scanner.Buffer(initialBuffer, 102400)
+
+			for scanner.Scan() {
+				lineCounter += 1
+				//fmt.Printf("debug: got line %s\n", scanner.Text())
+
+				matches := matcher.FindStringSubmatch(scanner.Text())
+				if matches == nil {
+					//log.Print("debug: got no matches\n")
+					_, err := writer.Write(scanner.Bytes())
+					if err != nil {
+						log.Fatal(err)
+						return -1, err
+					}
+					_, otherErr := writer.Write([]byte("\n"))
+					if otherErr != nil {
+						log.Fatal(err)
+						return -1, err
+					}
+				} else {
+					//log.Printf("debug: matches: %s", matches)
+					version, err := strconv.ParseInt(matches[3], 10, 32)
+					if err != nil {
+						log.Fatalf("Detected version was not a number, got %s\n", matches[3])
+						return lineCounter, err
+					}
+					log.Printf("ObjectID is %s, classID is %s, version is %d\n", matches[1], matches[2], version)
+					if version == REPLACEMENT_VERSION {
+						log.Printf("This file does not need updating.")
+						//FIXME: should add custom error here.
+						_, writeErr := writer.Write([]byte(scanner.Text()))
+						if writeErr != nil {
+							log.Fatal("Could not write output: ", writeErr)
+						}
+					} else if version > REPLACEMENT_VERSION {
+						log.Printf("This file is at a higher version (%d) than the replacement (%d).", version, REPLACEMENT_VERSION)
+					} else {
+						replacementString := fmt.Sprintf(`<Project ObjectID="%s" ClassID="%s" Version="%d">`+"\n", matches[1], matches[2], REPLACEMENT_VERSION)
+						replacementLine := matcher.ReplaceAllString(scanner.Text(), replacementString)
+						_, writeErr := writer.Write([]byte(replacementLine))
+						if writeErr != nil {
+							log.Fatal("Could not write output: ", writeErr)
+						}
+						log.Printf("Version identifier tag updated to %d", REPLACEMENT_VERSION)
+					}
+					foundIt = true
+				}
+				if scanner.Text() == "<//PremiereData>" {
+					break
+				}
+			}
 		}
 	}
 	return lineCounter, nil
