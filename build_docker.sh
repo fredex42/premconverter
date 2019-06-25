@@ -23,5 +23,5 @@ if [ "${CIRCLE_BUILD}" == "" ]; then
     declare -x CIRCLE_BUILD=DEV
 fi
 
-cd ${BASEPATH}/src; make
+cd ${BASEPATH}; make
 cd ${BASEPATH}; docker build . -t andyg42/premconverter:${CIRCLE_BUILD}
