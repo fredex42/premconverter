@@ -46,6 +46,10 @@ func worker(wg *sync.WaitGroup, reader2 reader.Reader) {
 	for job := range jobsChan {
 		lineCount, bytesWritten, err := reader2.GzipProcessor(job.inputFileName, job.outputFileName)
 
+		if err != nil && strings.Contains(err.Error(), "gzip: invalid header") {
+			log.Printf("File does not appear to be gzipped.  Attempting to run without gzip....")
+			lineCount, bytesWritten, err = reader.UncompressedProcessor(job.inputFileName, job.outputFileName)
+		}
 		result := Result{
 			job.outputFileName,
 			lineCount,
@@ -61,14 +65,14 @@ func worker(wg *sync.WaitGroup, reader2 reader.Reader) {
 
 // creates a worker pool and runs it. Only returns when all jobs have been processed.
 // You should run Allocate() to put jobs onto the queue before running this
-func CreateWorkerPoolAndWait(workerCount int, reader2 reader.Reader) {
+func CreateWorkerPoolAndWait(workerCount int, reader2 reader.Reader) *sync.WaitGroup {
 	var wg sync.WaitGroup
 	for i := 0; i < workerCount; i++ {
 		wg.Add(1)
 		go worker(&wg, reader2)
 	}
-	wg.Wait()
-	close(resultsChan)
+
+	return &wg
 }
 
 // puts jobs onto the queue.  Pass in an array of the input file paths, and the single output
@@ -90,6 +94,11 @@ func Allocate(fileList []string, outputPath string) {
 	close(jobsChan)
 }
 
+// call this to close the results channel, once the WaitGroup returned by `CreatePoolAndWait` returns
+func CloseResults() {
+	close(resultsChan)
+}
+
 //Gather results from the output channel and return them
 func CollectResults() []Result {
 	resultList := make([]Result, len(resultsChan))
@@ -99,6 +108,7 @@ func CollectResults() []Result {
 		resultList[i] = result
 		i++
 	}
+
 	return resultList
 }
 

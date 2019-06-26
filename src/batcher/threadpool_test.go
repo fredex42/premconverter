@@ -21,8 +21,9 @@ func TestThreadPoolNormal(t *testing.T) {
 	testSpy := &reader.SpyReader{}
 	testSpy.Initialise()
 
-	CreateWorkerPoolAndWait(2, testSpy)
+	wg := CreateWorkerPoolAndWait(2, testSpy)
 
+	wg.Wait()
 	var finalResults ResultList = CollectResults()
 	//threads mean they can come through in any order; we sort here to ensure that our assertions
 	//work properly below

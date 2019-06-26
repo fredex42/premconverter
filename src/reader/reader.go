@@ -17,6 +17,7 @@ const REPLACEMENT_VERSION = 35
 // Opens an incoming and outgoing file and applies streaming gzip processing to them
 // Then calls Scan() to process the results and returns the result from that.
 func GzipProcessor(filePathIn string, filePathOut string) (int, int64, error) {
+
 	file, err := os.Open(filePathIn)
 
 	if err != nil {
@@ -28,11 +29,8 @@ func GzipProcessor(filePathIn string, filePathOut string) (int, int64, error) {
 
 	reader, err := gzip.NewReader(file)
 
-	defer reader.Close()
-	defer file.Close()
-
 	if err != nil {
-		log.Fatal("Could not create gzip reader: ", err)
+		log.Printf("Could not create gzip reader: %s", err)
 		return -1, -1, err
 	}
 
@@ -46,8 +44,46 @@ func GzipProcessor(filePathIn string, filePathOut string) (int, int64, error) {
 	log.Printf("Opened %s to write", filePathOut)
 	writer := gzip.NewWriter(writeFile)
 
-	defer writer.Close()
+	defer func() {
+		if reader != nil {
+			reader.Close()
+		}
+		if file != nil {
+			file.Close()
+		}
+		if writer != nil {
+			writer.Close()
+		}
+		if writeFile != nil {
+			writeFile.Close()
+		}
+	}()
 	return Scan(reader, writer)
+}
+
+func UncompressedProcessor(filePathIn string, filePathOut string) (int, int64, error) {
+	file, err := os.Open(filePathIn)
+
+	if err != nil {
+		log.Fatal(err)
+		return -1, -1, err
+	}
+
+	log.Printf("Opened %s", filePathIn)
+
+	defer file.Close()
+
+	writeFile, writeErr := os.Create(filePathOut)
+
+	if writeErr != nil {
+		log.Fatalf("Could not open %s to write: %s", filePathOut, err)
+		return -1, -1, err
+	}
+
+	log.Printf("Opened %s to write", filePathOut)
+
+	defer writeFile.Close()
+	return Scan(file, writeFile)
 }
 
 func readToBuffer(reader io.Reader) (*bytes.Buffer, error) {
