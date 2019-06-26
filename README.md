@@ -14,6 +14,10 @@ to open a project file that was saved in the earlier version.
 This app automates that process, allowing you to efficiently batch-convert many project files from the older
 to the newer version.
 
+## What does it run on?
+
+The app runs from the commandline on any platform that Go supports - including MS Windows, Mac and Linux in 32 and 64 bit flavours.
+
 ## DISCLAIMER
 
 This process involves messing with the internal content of the project file, which Adobe specifically do not 
@@ -29,9 +33,12 @@ I repeat: **make sure your project file is backed up before messing around with 
 
 Step 1 - ensure you have Go v1.11 or later installed. Also ensure you have GNU make installed (Mac and Linux)
 should have this already
+
 Step 2 - clone this repo and run `make test && make` from the root of the checkout
+
 Step 3 - this should run all the tests and output the compiled program to the `bin/` directory. Choose the appropriate
 one for your operating system
+
 Step 4 - copy the relevant binary to somewhere on your PATH, e.g. `cp bin/premconverter.macos /usr/local/bin` for Mac.
 
 ### But I'm on Windows!
