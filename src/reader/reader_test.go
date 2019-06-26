@@ -48,16 +48,16 @@ func TestScanOK(t *testing.T) {
 	reader := strings.NewReader(test_data)
 	writer := bytes.NewBufferString("")
 
-	lineCount, err := Scan(reader, writer)
+	lineCount, _, err := Scan(reader, writer)
 
-	if(err!=nil){
+	if err != nil {
 		t.Errorf("Scan returned an error: %s", err)
 	}
 
 	t.Logf("Processed %d lines", lineCount)
 	output := writer.String()
 
-	if(output!=expected){
+	if output != expected {
 		t.Errorf("Scan did not process the string properly, got %s\n", output)
 		t.Errorf("Expected %s\n", expected)
 	}

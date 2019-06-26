@@ -19,10 +19,10 @@ func main() {
 
 	fmt.Printf("Processing %s to %s\n", *inputFilePtr, *outputFilePtr)
 
-	lineCount, err := reader.GzipProcessor(*inputFilePtr, *outputFilePtr)
+	lineCount, bytesCount, err := reader.GzipProcessor(*inputFilePtr, *outputFilePtr)
 	if err != nil {
 		fmt.Printf("Finished after %d lines with an error: %s\n", lineCount, err)
 	} else {
-		fmt.Printf("Done, processed %d lines\n", lineCount)
+		fmt.Printf("Done, processed %d lines and raw-copied %d bytes \n", lineCount, bytesCount)
 	}
 }

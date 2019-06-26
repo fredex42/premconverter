@@ -16,12 +16,12 @@ const REPLACEMENT_VERSION = 35
 
 // Opens an incoming and outgoing file and applies streaming gzip processing to them
 // Then calls Scan() to process the results and returns the result from that.
-func GzipProcessor(filePathIn string, filePathOut string) (int, error) {
+func GzipProcessor(filePathIn string, filePathOut string) (int, int64, error) {
 	file, err := os.Open(filePathIn)
 
 	if err != nil {
 		log.Fatal(err)
-		return -1, err
+		return -1, -1, err
 	}
 
 	log.Printf("Opened %s", filePathIn)
@@ -33,14 +33,14 @@ func GzipProcessor(filePathIn string, filePathOut string) (int, error) {
 
 	if err != nil {
 		log.Fatal("Could not create gzip reader: ", err)
-		return -1, err
+		return -1, -1, err
 	}
 
 	writeFile, writeErr := os.Create(filePathOut)
 
 	if writeErr != nil {
 		log.Fatalf("Could not open %s to write: %s", filePathOut, err)
-		return -1, err
+		return -1, -1, err
 	}
 
 	log.Printf("Opened %s to write", filePathOut)
@@ -65,18 +65,19 @@ func readToBuffer(reader io.Reader) (*bytes.Buffer, error) {
 
 // Takes a reader and a writer, and applies the version change as a regex
 // On error, returns an error; otherwise returns the number of lines processed.
-func Scan(reader io.Reader, writer io.Writer) (int, error) {
+func Scan(reader io.Reader, writer io.Writer) (int, int64, error) {
 	matcher, err := regexp.Compile(`<Project ObjectID="(\d)" ClassID="([\w\d\-]+)" Version="(\d+)">`)
 
 	if err != nil {
 		log.Fatal(err)
-		return -1, err
+		return -1, -1, err
 	}
 
 	lineCounter := 0
 
 	//var zeroLengthReadsCount int = 0
 	var foundIt = false
+	var bytesWritten int64 = 0
 
 	//it seems that sometimes we get zero-length reads in the middle of the file.  Even 10 sometimes.
 	//so, we must keep looping till we know that the whole stream is done.
@@ -85,9 +86,10 @@ func Scan(reader io.Reader, writer io.Writer) (int, error) {
 		if foundIt {
 			log.Print("Version tag has been upgraded, performing binary copy of the rest of the file.")
 			written, err := io.Copy(writer, reader)
+			bytesWritten += written
 			if err != nil {
 				log.Fatalf("Could not copy remainder of file: %s", err)
-				return lineCounter, err
+				return lineCounter, written, err
 			} else {
 				if written == 0 {
 					break
@@ -110,19 +112,19 @@ func Scan(reader io.Reader, writer io.Writer) (int, error) {
 					_, err := writer.Write(scanner.Bytes())
 					if err != nil {
 						log.Fatal(err)
-						return -1, err
+						return -1, -1, err
 					}
 					_, otherErr := writer.Write([]byte("\n"))
 					if otherErr != nil {
 						log.Fatal(err)
-						return -1, err
+						return -1, -1, err
 					}
 				} else {
 					//log.Printf("debug: matches: %s", matches)
 					version, err := strconv.ParseInt(matches[3], 10, 32)
 					if err != nil {
 						log.Fatalf("Detected version was not a number, got %s\n", matches[3])
-						return lineCounter, err
+						return lineCounter, -1, err
 					}
 					log.Printf("ObjectID is %s, classID is %s, version is %d\n", matches[1], matches[2], version)
 					if version == REPLACEMENT_VERSION {
@@ -151,5 +153,5 @@ func Scan(reader io.Reader, writer io.Writer) (int, error) {
 			}
 		}
 	}
-	return lineCounter, nil
+	return lineCounter, bytesWritten, nil
 }
