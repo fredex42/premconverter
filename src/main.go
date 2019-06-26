@@ -2,15 +2,13 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"github.com/fredex42/premconverter/batcher"
 	"github.com/fredex42/premconverter/reader"
 	"log"
 	"os"
-	"strconv"
 )
 
-func singleFileMode(inputFilePtr *string, outputFilePtr *string) {
+func singleFileMode(inputFilePtr *string, outputFilePtr *string, allowOverwrite bool) {
 	if *inputFilePtr == "" || *outputFilePtr == "" {
 		log.Print("You must specify an input and an output file. Run with --help for more information\n")
 		os.Exit(2)
@@ -18,7 +16,7 @@ func singleFileMode(inputFilePtr *string, outputFilePtr *string) {
 
 	log.Printf("Processing %s to %s\n", *inputFilePtr, *outputFilePtr)
 
-	lineCount, bytesCount, err := reader.GzipProcessor(*inputFilePtr, *outputFilePtr)
+	lineCount, bytesCount, err := reader.GzipProcessor(*inputFilePtr, *outputFilePtr, allowOverwrite)
 	if err != nil {
 		log.Printf("Finished after %d lines with an error: %s\n", lineCount, err)
 	} else {
@@ -26,7 +24,7 @@ func singleFileMode(inputFilePtr *string, outputFilePtr *string) {
 	}
 }
 
-func listFileMode(listFilePtr *string, outputPathPtr *string, concurrency int) {
+func listFileMode(listFilePtr *string, outputPathPtr *string, concurrency int, allowOverwrite bool) {
 	if *outputPathPtr == "" {
 		log.Print("You must specify an output path in the --output parameter")
 		os.Exit(2)
@@ -62,7 +60,7 @@ func listFileMode(listFilePtr *string, outputPathPtr *string, concurrency int) {
 	done := make(chan bool)
 
 	go batcher.ResultStats(done)
-	wg := batcher.CreateWorkerPoolAndWait(concurrency, processor)
+	wg := batcher.CreateWorkerPoolAndWait(concurrency, processor, allowOverwrite)
 	batcher.Allocate(filesList, *outputPathPtr)
 
 	wg.Wait()
@@ -75,18 +73,14 @@ func main() {
 	inputFilePtr := flag.String("input", "", "a single prproj file to process")
 	outputFilePtr := flag.String("output", "", "a single prproj file to output, or a directory for output if using a batch list")
 	listFilePtr := flag.String("list", "", "a newline-delimited list of input files to process")
-	concurrencyStringPtr := flag.String("concurrency", "3", "how many projects to process at once when in batch mode")
+	concurrencyPtr := flag.Int("concurrency", 3, "how many projects to process at once when in batch mode")
+	allowOverwritePtr := flag.Bool("allow-overwrite", false, "whether we are allowed to overwrite existing files in the output directory or not")
 	flag.Parse()
 
 	if *listFilePtr == "" {
-		singleFileMode(inputFilePtr, outputFilePtr)
+		singleFileMode(inputFilePtr, outputFilePtr, *allowOverwritePtr)
 	} else {
-		concurrency, err := strconv.Atoi(*concurrencyStringPtr)
-		if err != nil {
-			fmt.Printf("Could not convert concurrency '%s' into an integer", *concurrencyStringPtr)
-			os.Exit(4)
-		}
-		listFileMode(listFilePtr, outputFilePtr, concurrency)
+		listFileMode(listFilePtr, outputFilePtr, *concurrencyPtr, *allowOverwritePtr)
 	}
 
 }

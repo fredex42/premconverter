@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -14,9 +15,21 @@ import (
 
 const REPLACEMENT_VERSION = 35
 
+func CheckFileExist(filePath string) (bool, error) {
+	_, err := os.Stat(filePath)
+
+	if os.IsNotExist(err) {
+		return false, nil
+	} else if err != nil {
+		return true, err
+	} else {
+		return true, nil
+	}
+}
+
 // Opens an incoming and outgoing file and applies streaming gzip processing to them
 // Then calls Scan() to process the results and returns the result from that.
-func GzipProcessor(filePathIn string, filePathOut string) (int, int64, error) {
+func GzipProcessor(filePathIn string, filePathOut string, allowOverwrite bool) (int, int64, error) {
 
 	file, err := os.Open(filePathIn)
 
@@ -34,6 +47,15 @@ func GzipProcessor(filePathIn string, filePathOut string) (int, int64, error) {
 		return -1, -1, err
 	}
 
+	doesExist, _ := CheckFileExist(filePathOut)
+	if doesExist {
+		if allowOverwrite {
+			log.Printf("Warning: overwriting output file %s", filePathOut)
+		} else {
+			log.Printf("Not overwriting output file %s", filePathOut)
+			return -1, -1, errors.New("Not overwriting output file")
+		}
+	}
 	writeFile, writeErr := os.Create(filePathOut)
 
 	if writeErr != nil {
@@ -61,7 +83,7 @@ func GzipProcessor(filePathIn string, filePathOut string) (int, int64, error) {
 	return Scan(reader, writer)
 }
 
-func UncompressedProcessor(filePathIn string, filePathOut string) (int, int64, error) {
+func UncompressedProcessor(filePathIn string, filePathOut string, allowOverwrite bool) (int, int64, error) {
 	file, err := os.Open(filePathIn)
 
 	if err != nil {
@@ -71,7 +93,15 @@ func UncompressedProcessor(filePathIn string, filePathOut string) (int, int64, e
 
 	log.Printf("Opened %s", filePathIn)
 
-	defer file.Close()
+	doesExist, _ := CheckFileExist(filePathOut)
+	if doesExist {
+		if allowOverwrite {
+			log.Printf("Warning: overwriting output file %s", filePathOut)
+		} else {
+			log.Printf("Not overwriting output file %s", filePathOut)
+			return -1, -1, errors.New("not overwriting output file")
+		}
+	}
 
 	writeFile, writeErr := os.Create(filePathOut)
 
@@ -82,7 +112,15 @@ func UncompressedProcessor(filePathIn string, filePathOut string) (int, int64, e
 
 	log.Printf("Opened %s to write", filePathOut)
 
-	defer writeFile.Close()
+	defer func() {
+		if writeFile != nil {
+			writeFile.Close()
+		}
+		if file != nil {
+			file.Close()
+		}
+	}()
+
 	return Scan(file, writeFile)
 }
 

@@ -1,8 +1,10 @@
 package reader
 
+import "strconv"
+
 //see https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/mocking#mocking
 type Reader interface {
-	GzipProcessor(string, string) (int, int64, error)
+	GzipProcessor(string, string, bool) (int, int64, error)
 }
 
 type SpyReader struct {
@@ -10,8 +12,7 @@ type SpyReader struct {
 	Args  [][]string
 }
 
-type RealReader struct {
-}
+type RealReader struct{}
 
 func (s *SpyReader) Initialise() {
 	s.Args = make([][]string, 10)
@@ -20,14 +21,14 @@ func (s *SpyReader) Initialise() {
 	}
 }
 
-func (s *SpyReader) GzipProcessor(filePathIn string, filePathOut string) (int, int64, error) {
+func (s *SpyReader) GzipProcessor(filePathIn string, filePathOut string, allowOverwrite bool) (int, int64, error) {
 	s.Args[s.Calls][0] = filePathIn
 	s.Args[s.Calls][1] = filePathOut
-
+	s.Args[s.Calls][2] = strconv.FormatBool(allowOverwrite)
 	s.Calls++
 	return 1, 1, nil
 }
 
-func (r *RealReader) GzipProcessor(filePathIn string, filePathOut string) (int, int64, error) {
-	return GzipProcessor(filePathIn, filePathOut)
+func (r *RealReader) GzipProcessor(filePathIn string, filePathOut string, allowOverwrite bool) (int, int64, error) {
+	return GzipProcessor(filePathIn, filePathOut, allowOverwrite)
 }

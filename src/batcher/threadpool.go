@@ -42,13 +42,13 @@ var resultsChan = make(chan Result, 10)
 // body of the worker thread that reads a job description and calls out to reader to process it
 // need to pass a pointer to a WaitGroup that will be notified of termination, and an interface pointer
 // to the implmentation of Reader to use
-func worker(wg *sync.WaitGroup, reader2 reader.Reader) {
+func worker(wg *sync.WaitGroup, reader2 reader.Reader, allowOverwrite bool) {
 	for job := range jobsChan {
-		lineCount, bytesWritten, err := reader2.GzipProcessor(job.inputFileName, job.outputFileName)
+		lineCount, bytesWritten, err := reader2.GzipProcessor(job.inputFileName, job.outputFileName, allowOverwrite)
 
 		if err != nil && strings.Contains(err.Error(), "gzip: invalid header") {
 			log.Printf("File does not appear to be gzipped.  Attempting to run without gzip....")
-			lineCount, bytesWritten, err = reader.UncompressedProcessor(job.inputFileName, job.outputFileName)
+			lineCount, bytesWritten, err = reader.UncompressedProcessor(job.inputFileName, job.outputFileName, allowOverwrite)
 		}
 		result := Result{
 			job.outputFileName,
@@ -65,11 +65,11 @@ func worker(wg *sync.WaitGroup, reader2 reader.Reader) {
 
 // creates a worker pool and runs it. Only returns when all jobs have been processed.
 // You should run Allocate() to put jobs onto the queue before running this
-func CreateWorkerPoolAndWait(workerCount int, reader2 reader.Reader) *sync.WaitGroup {
+func CreateWorkerPoolAndWait(workerCount int, reader2 reader.Reader, allowOverwrite bool) *sync.WaitGroup {
 	var wg sync.WaitGroup
 	for i := 0; i < workerCount; i++ {
 		wg.Add(1)
-		go worker(&wg, reader2)
+		go worker(&wg, reader2, allowOverwrite)
 	}
 
 	return &wg
