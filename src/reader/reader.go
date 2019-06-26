@@ -28,18 +28,6 @@ func GzipProcessor(filePathIn string, filePathOut string) (int, error) {
 
 	reader, err := gzip.NewReader(file)
 
-	//log.Printf("Buffering %s in memory...", filePathIn)
-	//
-	//buffer, bufErr := readToBuffer(reader)
-	//if(bufErr!=nil){
-	//	return 0, nil
-	//}
-	//
-	//reader.Close()
-	//file.Close()
-	//
-	//log.Printf("Buffering completed\n")
-
 	defer reader.Close()
 	defer file.Close()
 
