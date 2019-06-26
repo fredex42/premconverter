@@ -48,7 +48,7 @@ func TestScanOK(t *testing.T) {
 	reader := strings.NewReader(test_data)
 	writer := bytes.NewBufferString("")
 
-	lineCount, _, err := Scan(reader, writer)
+	lineCount, _, err := Scan(reader, writer, "test")
 
 	if err != nil {
 		t.Errorf("Scan returned an error: %s", err)

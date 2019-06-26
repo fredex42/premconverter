@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path"
 	"regexp"
 	"strconv"
 )
@@ -42,28 +43,30 @@ func GzipProcessor(filePathIn string, filePathOut string, allowOverwrite bool) (
 
 	reader, err := gzip.NewReader(file)
 
+	logtag := path.Base(filePathIn)
+
 	if err != nil {
-		log.Printf("Could not create gzip reader: %s", err)
+		log.Printf("[%s] Could not create gzip reader: %s", logtag, err)
 		return -1, -1, err
 	}
 
 	doesExist, _ := CheckFileExist(filePathOut)
 	if doesExist {
 		if allowOverwrite {
-			log.Printf("Warning: overwriting output file %s", filePathOut)
+			log.Printf("[%s] Warning: overwriting output file %s", logtag, filePathOut)
 		} else {
-			log.Printf("Not overwriting output file %s", filePathOut)
+			log.Printf("[%s] Not overwriting output file %s", logtag, filePathOut)
 			return -1, -1, errors.New("Not overwriting output file")
 		}
 	}
 	writeFile, writeErr := os.Create(filePathOut)
 
 	if writeErr != nil {
-		log.Fatalf("Could not open %s to write: %s", filePathOut, err)
+		log.Fatalf("[%s] Could not open %s to write: %s", logtag, filePathOut, err)
 		return -1, -1, err
 	}
 
-	log.Printf("Opened %s to write", filePathOut)
+	log.Printf("[%s] Opened %s to write", logtag, filePathOut)
 	writer := gzip.NewWriter(writeFile)
 
 	defer func() {
@@ -80,7 +83,7 @@ func GzipProcessor(filePathIn string, filePathOut string, allowOverwrite bool) (
 			writeFile.Close()
 		}
 	}()
-	return Scan(reader, writer)
+	return Scan(reader, writer, logtag)
 }
 
 func UncompressedProcessor(filePathIn string, filePathOut string, allowOverwrite bool) (int, int64, error) {
@@ -92,6 +95,8 @@ func UncompressedProcessor(filePathIn string, filePathOut string, allowOverwrite
 	}
 
 	log.Printf("Opened %s", filePathIn)
+
+	logtag := path.Base(filePathIn)
 
 	doesExist, _ := CheckFileExist(filePathOut)
 	if doesExist {
@@ -121,7 +126,7 @@ func UncompressedProcessor(filePathIn string, filePathOut string, allowOverwrite
 		}
 	}()
 
-	return Scan(file, writeFile)
+	return Scan(file, writeFile, logtag)
 }
 
 func readToBuffer(reader io.Reader) (*bytes.Buffer, error) {
@@ -139,7 +144,7 @@ func readToBuffer(reader io.Reader) (*bytes.Buffer, error) {
 
 // Takes a reader and a writer, and applies the version change as a regex
 // On error, returns an error; otherwise returns the number of lines processed.
-func Scan(reader io.Reader, writer io.Writer) (int, int64, error) {
+func Scan(reader io.Reader, writer io.Writer, logtag string) (int, int64, error) {
 	matcher, err := regexp.Compile(`<Project ObjectID="(\d)" ClassID="([\w\d\-]+)" Version="(\d+)">`)
 
 	if err != nil {
@@ -158,17 +163,17 @@ func Scan(reader io.Reader, writer io.Writer) (int, int64, error) {
 	//if we have 1,000 zero-length reads, then we conclude that it's done.
 	for true {
 		if foundIt {
-			log.Print("Version tag has been upgraded, performing binary copy of the rest of the file.")
+			log.Printf("[%s] Version tag has been upgraded, performing binary copy of the rest of the file.", logtag)
 			written, err := io.Copy(writer, reader)
 			bytesWritten += written
 			if err != nil {
-				log.Fatalf("Could not copy remainder of file: %s", err)
+				log.Fatalf("[%s] Could not copy remainder of file: %s", logtag, err)
 				return lineCounter, written, err
 			} else {
 				if written == 0 {
 					break
 				}
-				log.Printf("Copied %d (uncompressed) bytes", written)
+				log.Printf("[%s] Copied %d (uncompressed) bytes", logtag, written)
 			}
 		} else {
 			scanner := bufio.NewScanner(reader)
@@ -197,10 +202,10 @@ func Scan(reader io.Reader, writer io.Writer) (int, int64, error) {
 					//log.Printf("debug: matches: %s", matches)
 					version, err := strconv.ParseInt(matches[3], 10, 32)
 					if err != nil {
-						log.Fatalf("Detected version was not a number, got %s\n", matches[3])
+						log.Fatalf("[%s] Detected version was not a number, got %s\n", logtag, matches[3])
 						return lineCounter, -1, err
 					}
-					log.Printf("ObjectID is %s, classID is %s, version is %d\n", matches[1], matches[2], version)
+					log.Printf("[%s] ObjectID is %s, classID is %s, version is %d\n", logtag, matches[1], matches[2], version)
 					if version == REPLACEMENT_VERSION {
 						log.Printf("This file does not need updating.")
 						//FIXME: should add custom error here.
@@ -209,19 +214,20 @@ func Scan(reader io.Reader, writer io.Writer) (int, int64, error) {
 							log.Fatal("Could not write output: ", writeErr)
 						}
 					} else if version > REPLACEMENT_VERSION {
-						log.Printf("This file is at a higher version (%d) than the replacement (%d).", version, REPLACEMENT_VERSION)
+						log.Printf("[%s] This file is at a higher version (%d) than the replacement (%d).", logtag, version, REPLACEMENT_VERSION)
 					} else {
 						replacementString := fmt.Sprintf(`<Project ObjectID="%s" ClassID="%s" Version="%d">`+"\n", matches[1], matches[2], REPLACEMENT_VERSION)
 						replacementLine := matcher.ReplaceAllString(scanner.Text(), replacementString)
 						_, writeErr := writer.Write([]byte(replacementLine))
 						if writeErr != nil {
-							log.Fatal("Could not write output: ", writeErr)
+							log.Fatalf("[%s] Could not write output: %s", logtag, writeErr)
 						}
-						log.Printf("Version identifier tag updated to %d", REPLACEMENT_VERSION)
+						log.Printf("[%s] Version identifier tag updated to %d", logtag, REPLACEMENT_VERSION)
 					}
 					foundIt = true
 				}
-				if scanner.Text() == "<//PremiereData>" {
+				if scanner.Text() == "</PremiereData>" {
+					foundIt = true
 					break
 				}
 			}

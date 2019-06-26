@@ -47,7 +47,7 @@ func worker(wg *sync.WaitGroup, reader2 reader.Reader, allowOverwrite bool) {
 		lineCount, bytesWritten, err := reader2.GzipProcessor(job.inputFileName, job.outputFileName, allowOverwrite)
 
 		if err != nil && strings.Contains(err.Error(), "gzip: invalid header") {
-			log.Printf("File does not appear to be gzipped.  Attempting to run without gzip....")
+			log.Printf("[%s] File does not appear to be gzipped.  Attempting to run without gzip....", job.inputFileName)
 			lineCount, bytesWritten, err = reader.UncompressedProcessor(job.inputFileName, job.outputFileName, allowOverwrite)
 		}
 		result := Result{
@@ -57,6 +57,13 @@ func worker(wg *sync.WaitGroup, reader2 reader.Reader, allowOverwrite bool) {
 			err == nil,
 			err,
 		}
+
+		errStr := "no error"
+		if err != nil {
+			errStr = "error: " + err.Error()
+		}
+
+		log.Printf("[%s] Completed processing, %s", job.inputFileName, errStr)
 		resultsChan <- result
 	}
 
