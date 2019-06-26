@@ -1,0 +1,55 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: premiere-converter-{{index}}
+spec:
+  template:
+    metadata:
+      name: premiere-converter-{{index}}
+      labels:
+        script-name: premiere-converter
+    spec:
+      nodeSelector:
+        has-san: "true"
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchExpressions:
+                    - key: script-name
+                      operator: In
+                      values:
+                        - premiere-converter
+      containers:
+        - name: premconverter
+          imagePullPolicy: Always
+          image: andyg42/premconverter:DEV
+          command: ["/usr/local/bin/premconverter","--list", "/mnt/lists/{{listfile}}-{{index}}.lst", "--output", "/mnt/output","--concurrency", "5"]
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "3"
+          volumeMounts:
+            - name: output-path
+              mountPath: /mnt/output
+            - name: input-path
+              mountPath: {{real-input-path}}
+            - name: lists-data
+              mountPath: /mnt/lists
+      volumes:
+        - name: input-path
+          hostPath:
+            path: {{real-input-path}}
+            type: Directory
+        - name: lists-data
+          persistentVolumeClaim:
+            claimName: premconverter-lists
+        - name: output-path
+          hostPath:
+            path: {{real-output-path}}
+            type: Directory
+      restartPolicy: Never
+  backoffLimit: 1

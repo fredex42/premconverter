@@ -93,3 +93,6 @@ You can then attempt to open `updated.prproj` in Premiere 2019.
 
 Yes, that is in development at the moment.
 
+## This is all very well, but I have tens of thousands of projects to copy
+
+Have a look at `kube/README.md`, which contains details of how to set up a large-scale run on a Kubernetes cluster

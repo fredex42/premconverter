@@ -4,3 +4,4 @@ premconverter
 *.iml
 *.prproj
 *.lst
+premconverter-job-?.yaml
