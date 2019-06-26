@@ -1,8 +1,11 @@
 # Industrial Capacity Conversion
 
-Let's say you've got a LOT of projects to complete.  Like over 20,000 (like us). Many of which run to the hundreds of Mb.
+Let's say you've got a LOT of projects to complete.  Like over 20,000 (like us).  Many of which run to the hundreds of Mb.
+
 And let's say you've actually got plenty of hardware - in the form of a Kubernetes (or OpenShift) cluster.  Like us.
+
 The kind of thing where taking another hour to set it up is going to save you a day of running time.
+
 Well, you're not going to want to hang around waiting for it all to run on a laptop, are you?
 
 ## Step 1 - docker image

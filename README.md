@@ -31,8 +31,8 @@ I repeat: **make sure your project file is backed up before messing around with 
 
 ## How do I build it?
 
-Step 1 - ensure you have Go v1.11 or later installed. Also ensure you have GNU make installed (Mac and Linux)
-should have this already
+Step 1 - ensure you have Go v1.11 or later installed. Also ensure you have GNU make installed (Mac and Linux
+should have this already)
 
 Step 2 - clone this repo and run `make test && make` from the root of the checkout
 
@@ -49,7 +49,7 @@ My recommendation would be to install Docker, then run (from a command prompt):
 ```console
 $ docker run --rm -it -v {path-to-checkout}:/usr/src golang:1.12-stretch
 [wait for Docker to download the image and put you to a prompt....]
-root@5ac88cc02093:/go# cd /usr/src
+root@e1f44704e2dc:/go# cd /usr/src
 root@e1f44704e2dc:/usr/src# make test && make
 cd ./src; go test ./...
 ?   	github.com/fredex42/premconverter	[no test files]
@@ -70,17 +70,30 @@ done this myself, so I can't presume to offer any advice on it though.
 Right now, I'm afraid yes - I am in the process of setting up an automated build and when that is done will update
 this doc with details of where you can download precompiled binaries from.
 
+## Do I need Go installed to run it?
+
+No! Just the plain, simple, executable is enough.  That's right - no libraries, no runtimes, no nothing.  Just a single
+executable.  Copy and play.
+
 ## How do I run it?
 
 With that part out of the way, now comes the simple part:
 
 ```console
 $ premconverter.macos --help
-Usage of bin/premconverter.macos:
+premconverter version DEV by Andy Gallagher. See https://github.com/fredex42/premconverter for details.
+
+Usage of ./bin/premconverter.macos:
+  -allow-overwrite
+    	whether we are allowed to overwrite existing files in the output directory or not
+  -concurrency int
+    	how many projects to process at once when in batch mode (default 3)
   -input string
     	a single prproj file to process
+  -list string
+    	a newline-delimited list of input files to process
   -output string
-    	a single prproj file to output
+    	a single prproj file to output, or a directory for output if using a batch list
     	
 $ premconverter.macos -input /path/to/my/current.prproj -output /path/to/my/updated.prproj
 ```
@@ -91,7 +104,20 @@ You can then attempt to open `updated.prproj` in Premiere 2019.
 
 ## Wait, you said something about batching?
 
-Yes, that is in development at the moment.
+If you have a bunch of files to convert, you can do it like this:
+
+```console
+$ find /path/to/your/projects -iname \*.prproj > ~/myfiles.lst
+$ mkdir -p /path/to/upgraded/projects
+$ premconverter.macos -list ~/myfiles.lst -output  /path/to/upgraded/projects
+```
+
+This will convert every project mentioned in the `myfiles.lst` file and put the updated version into `/path/to/upgraded/projects`.
+Nothing in `/path/to/upgraded/projects` will get overwritten by default; specify `-allow-overwrite` on the commandline to
+allow this.
+
+By default, 3 conversions will be carried out at once to make use of multiple cores available on the machine.  You can specify
+`-concurrency {n}` on the commandline to increase or decrease this depending on your needs.
 
 ## This is all very well, but I have tens of thousands of projects to copy
 

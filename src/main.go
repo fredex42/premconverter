@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"github.com/fredex42/premconverter/batcher"
 	"github.com/fredex42/premconverter/reader"
 	"log"
@@ -70,6 +71,7 @@ func listFileMode(listFilePtr *string, outputPathPtr *string, concurrency int, a
 }
 
 func main() {
+	fmt.Print("premconverter version DEV by Andy Gallagher. See https://github.com/fredex42/premconverter for details.\n\n")
 	inputFilePtr := flag.String("input", "", "a single prproj file to process")
 	outputFilePtr := flag.String("output", "", "a single prproj file to output, or a directory for output if using a batch list")
 	listFilePtr := flag.String("list", "", "a newline-delimited list of input files to process")
