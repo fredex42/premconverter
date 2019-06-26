@@ -47,11 +47,18 @@ Ah.  Well, unfortunately, I don't do any development on Windows so I'm not best-
 My recommendation would be to install Docker, then run (from a command prompt):
 
 ```console
-docker run --rm -it -v {path-to-checkout}:/usr/src golang:1.12-stretch
+$ docker run --rm -it -v {path-to-checkout}:/usr/src golang:1.12-stretch
 [wait for Docker to download the image and put you to a prompt....]
-cd /usr/src
-make test && make
-exit
+root@5ac88cc02093:/go# cd /usr/src
+root@e1f44704e2dc:/usr/src# make test && make
+cd ./src; go test ./...
+?   	github.com/fredex42/premconverter	[no test files]
+ok  	github.com/fredex42/premconverter/reader	0.004s
+cd ./src; GOOS=darwin go build -o ../bin/premconverter.macos
+cd ./src; GOOS=linux GOARCH=amd64 go build -o ../bin/premconverter.linux64
+cd ./src; GOOS=linux GOARCH=386 go build -o ../bin/premconverter.linux32
+cd ./src; GOOS=windows go build -o ../bin/premconverter.exe
+root@e1f44704e2dc:/usr/src# exit
 ```
 
 This allows you to fairly simply have a working Linux environment to perform the build.
