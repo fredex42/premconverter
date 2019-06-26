@@ -1,0 +1,19 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: provisioning-pod
+spec:
+  volumes:
+    - name: task-pv-storage
+      persistentVolumeClaim:
+        claimName: premconverter-lists
+  containers:
+    - name: task-pv-container
+      image: andyg42/premconverter:DEV
+      command:
+        - /bin/sh
+        - "-c"
+        - sleep 3600
+      volumeMounts:
+        - mountPath: "/mnt/lists"
+          name: task-pv-storage

@@ -3,4 +3,5 @@ premconverter
 .idea/
 *.iml
 *.prproj
-
+*.lst
+premconverter-job-?.yaml
