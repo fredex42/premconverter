@@ -153,15 +153,15 @@ func Scan(reader io.Reader, writer io.Writer, logtag string) (int, int64, error)
 	}
 
 	lineCounter := 0
-
+	lastLineCounter := 0
 	//var zeroLengthReadsCount int = 0
 	var foundIt = false
 	var bytesWritten int64 = 0
 
 	//it seems that sometimes we get zero-length reads in the middle of the file.  Even 10 sometimes.
 	//so, we must keep looping till we know that the whole stream is done.
-	//if we have 1,000 zero-length reads, then we conclude that it's done.
-	for true {
+	//if we have 100,000 zero-length reads in a row, then we conclude that it must be finished
+	for emptyReads := 0; emptyReads < 100000; {
 		if foundIt {
 			log.Printf("[%s] Version tag has been upgraded, performing binary copy of the rest of the file.", logtag)
 			written, err := io.Copy(writer, reader)
@@ -181,9 +181,10 @@ func Scan(reader io.Reader, writer io.Writer, logtag string) (int, int64, error)
 			initialBuffer := make([]byte, 102400)
 			scanner.Buffer(initialBuffer, 102400)
 
+			//fmt.Printf("On line %d\n", lineCounter)
 			for scanner.Scan() {
 				lineCounter += 1
-				//fmt.Printf("debug: got line %s\n", scanner.Text())
+				fmt.Printf("debug: got line %s\n", scanner.Text())
 
 				matches := matcher.FindStringSubmatch(scanner.Text())
 				if matches == nil {
@@ -231,6 +232,16 @@ func Scan(reader io.Reader, writer io.Writer, logtag string) (int, int64, error)
 					break
 				}
 			}
+		}
+		if lineCounter == lastLineCounter {
+			emptyReads += 1
+			shouldPrintDiv := emptyReads % 1000
+			if shouldPrintDiv == 0 { //only print the warning every 30 empty reads
+				log.Printf("[%s] WARNING got %d empty reads in a row", logtag, emptyReads)
+			}
+		} else {
+			emptyReads = 0
+			lastLineCounter = lineCounter
 		}
 	}
 	return lineCounter, bytesWritten, nil
