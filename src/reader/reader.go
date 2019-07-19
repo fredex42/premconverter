@@ -35,7 +35,7 @@ func GzipProcessor(filePathIn string, filePathOut string, allowOverwrite bool) (
 	file, err := os.Open(filePathIn)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 		return -1, -1, err
 	}
 
@@ -62,7 +62,7 @@ func GzipProcessor(filePathIn string, filePathOut string, allowOverwrite bool) (
 	writeFile, writeErr := os.Create(filePathOut)
 
 	if writeErr != nil {
-		log.Fatalf("[%s] Could not open %s to write: %s", logtag, filePathOut, err)
+		log.Printf("[%s] Could not open %s to write: %s", logtag, filePathOut, err)
 		return -1, -1, err
 	}
 
@@ -90,7 +90,7 @@ func UncompressedProcessor(filePathIn string, filePathOut string, allowOverwrite
 	file, err := os.Open(filePathIn)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 		return -1, -1, err
 	}
 
@@ -111,7 +111,7 @@ func UncompressedProcessor(filePathIn string, filePathOut string, allowOverwrite
 	writeFile, writeErr := os.Create(filePathOut)
 
 	if writeErr != nil {
-		log.Fatalf("Could not open %s to write: %s", filePathOut, err)
+		log.Printf("Could not open %s to write: %s", filePathOut, err)
 		return -1, -1, err
 	}
 
@@ -135,7 +135,7 @@ func readToBuffer(reader io.Reader) (*bytes.Buffer, error) {
 	bytesRead, err := buffer.ReadFrom(reader)
 
 	if err != nil {
-		log.Fatal("Could not buffer incoming file: ", err)
+		log.Print("Could not buffer incoming file: ", err)
 		return nil, err
 	}
 	log.Printf("Read %d bytes", bytesRead)
@@ -148,7 +148,7 @@ func Scan(reader io.Reader, writer io.Writer, logtag string) (int, int64, error)
 	matcher, err := regexp.Compile(`<Project ObjectID="(\d)" ClassID="([\w\d\-]+)" Version="(\d+)">`)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 		return -1, -1, err
 	}
 
@@ -167,7 +167,7 @@ func Scan(reader io.Reader, writer io.Writer, logtag string) (int, int64, error)
 			written, err := io.Copy(writer, reader)
 			bytesWritten += written
 			if err != nil {
-				log.Fatalf("[%s] Could not copy remainder of file: %s", logtag, err)
+				log.Printf("[%s] Could not copy remainder of file: %s", logtag, err)
 				return lineCounter, written, err
 			} else {
 				if written == 0 {
@@ -190,19 +190,19 @@ func Scan(reader io.Reader, writer io.Writer, logtag string) (int, int64, error)
 					//log.Print("debug: got no matches\n")
 					_, err := writer.Write(scanner.Bytes())
 					if err != nil {
-						log.Fatal(err)
+						log.Print(err)
 						return -1, -1, err
 					}
 					_, otherErr := writer.Write([]byte("\n"))
 					if otherErr != nil {
-						log.Fatal(err)
+						log.Print(err)
 						return -1, -1, err
 					}
 				} else {
 					//log.Printf("debug: matches: %s", matches)
 					version, err := strconv.ParseInt(matches[3], 10, 32)
 					if err != nil {
-						log.Fatalf("[%s] Detected version was not a number, got %s\n", logtag, matches[3])
+						log.Printf("[%s] Detected version was not a number, got %s\n", logtag, matches[3])
 						return lineCounter, -1, err
 					}
 					log.Printf("[%s] ObjectID is %s, classID is %s, version is %d\n", logtag, matches[1], matches[2], version)
@@ -211,7 +211,7 @@ func Scan(reader io.Reader, writer io.Writer, logtag string) (int, int64, error)
 						//FIXME: should add custom error here.
 						_, writeErr := writer.Write([]byte(scanner.Text()))
 						if writeErr != nil {
-							log.Fatal("Could not write output: ", writeErr)
+							log.Print("Could not write output: ", writeErr)
 						}
 					} else if version > REPLACEMENT_VERSION {
 						log.Printf("[%s] This file is at a higher version (%d) than the replacement (%d).", logtag, version, REPLACEMENT_VERSION)
@@ -220,7 +220,7 @@ func Scan(reader io.Reader, writer io.Writer, logtag string) (int, int64, error)
 						replacementLine := matcher.ReplaceAllString(scanner.Text(), replacementString)
 						_, writeErr := writer.Write([]byte(replacementLine))
 						if writeErr != nil {
-							log.Fatalf("[%s] Could not write output: %s", logtag, writeErr)
+							log.Printf("[%s] Could not write output: %s", logtag, writeErr)
 						}
 						log.Printf("[%s] Version identifier tag updated to %d", logtag, REPLACEMENT_VERSION)
 					}
