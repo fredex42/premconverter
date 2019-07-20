@@ -29,9 +29,9 @@ func processList(file io.Reader) ([]string, error) {
 	var rtnList = make([]string, INITIAL_LIST_SIZE)
 
 	for scanner.Scan() {
-		log.Printf("len %d, cap %d", lineCounter, cap(rtnList))
+		//log.Printf("len %d, cap %d", lineCounter, cap(rtnList))
 		if lineCounter == cap(rtnList) {
-			log.Printf("exanding rtnList capacity from %d to %d", cap(rtnList), lineCounter+INITIAL_LIST_SIZE)
+			//log.Printf("exanding rtnList capacity from %d to %d", cap(rtnList), lineCounter+INITIAL_LIST_SIZE)
 			newSlice := make([]string, lineCounter+INITIAL_LIST_SIZE)
 			copy(newSlice, rtnList)
 			rtnList = newSlice

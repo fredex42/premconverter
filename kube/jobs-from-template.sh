@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 NUM_SPLITS=5
-REAL_INPUT_PATH=/srv/StudioPipe2/Tests/ProjectsOld
-REAL_OUTPUT_PATH=/srv/StudioPipe2/Tests/ProjectsUpgraded
+REAL_INPUT_PATH=/path/to/projects
+REAL_OUTPUT_PATH=/path/to/upgraded
 LISTFILE=live-env-test
 
 for i in `seq 1 $NUM_SPLITS`; do
