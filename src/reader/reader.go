@@ -143,7 +143,7 @@ func readToBuffer(reader io.Reader) (*bytes.Buffer, error) {
 }
 
 // Takes a reader and a writer, and applies the version change as a regex
-// On error, returns an error; otherwise returns the number of lines processed.
+// On error, returns an error; otherwise returns the number of lines processed and the number of uncompressed bytes processed
 func Scan(reader io.Reader, writer io.Writer, logtag string) (int, int64, error) {
 	matcher, err := regexp.Compile(`<Project ObjectID="(\d)" ClassID="([\w\d\-]+)" Version="(\d+)">`)
 
@@ -184,7 +184,7 @@ func Scan(reader io.Reader, writer io.Writer, logtag string) (int, int64, error)
 			//fmt.Printf("On line %d\n", lineCounter)
 			for scanner.Scan() {
 				lineCounter += 1
-				fmt.Printf("debug: got line %s\n", scanner.Text())
+				//fmt.Printf("debug: got line %s\n", scanner.Text())
 
 				matches := matcher.FindStringSubmatch(scanner.Text())
 				if matches == nil {
