@@ -25,3 +25,4 @@ fi
 
 cd ${BASEPATH}; make
 cd ${BASEPATH}; docker build . -t andyg42/premconverter:${CIRCLE_BUILD}
+cd ${BASEPATH}; docker push andyg42/premconverter:${CIRCLE_BUILD}

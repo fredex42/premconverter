@@ -3,7 +3,7 @@
 NUM_SPLITS=5
 REAL_INPUT_PATH=/path/to/projects
 REAL_OUTPUT_PATH=/path/to/upgraded
-LISTFILE=dev-environment-projects
+LISTFILE=live-env-test
 
 for i in `seq 1 $NUM_SPLITS`; do
     cat templates/RunAsJob.yaml | sed s/\{\{index\}\}/$i/g > /tmp/1

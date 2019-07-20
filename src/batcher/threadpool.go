@@ -4,6 +4,7 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"os"
 )
 import "github.com/fredex42/premconverter/reader"
 import "path"
@@ -39,6 +40,17 @@ func (r ResultList) Less(i, j int) bool {
 var jobsChan = make(chan Job, 10)
 var resultsChan = make(chan Result, 10)
 
+func Exists(name string) (bool,error) {
+    if _, err := os.Stat(name); err != nil {
+        if os.IsNotExist(err) {
+            return false, nil
+        } else {
+					return true, err
+				}
+    }
+    return true, nil
+}
+
 // body of the worker thread that reads a job description and calls out to reader to process it
 // need to pass a pointer to a WaitGroup that will be notified of termination, and an interface pointer
 // to the implmentation of Reader to use
@@ -50,6 +62,7 @@ func worker(wg *sync.WaitGroup, reader2 reader.Reader, allowOverwrite bool) {
 			log.Printf("[%s] File does not appear to be gzipped.  Attempting to run without gzip....", job.inputFileName)
 			lineCount, bytesWritten, err = reader.UncompressedProcessor(job.inputFileName, job.outputFileName, allowOverwrite)
 		}
+
 		result := Result{
 			job.outputFileName,
 			lineCount,
@@ -63,6 +76,15 @@ func worker(wg *sync.WaitGroup, reader2 reader.Reader, allowOverwrite bool) {
 			errStr = "error: " + err.Error()
 		}
 
+		if err!=nil {
+			exists, existErr := Exists(job.outputFileName)
+			if exists && existErr==nil {
+				log.Printf("[%s] - output file %s exists but an error occurred. Removing corrupt output file.", job.inputFileName, job.outputFileName)
+				os.Remove(job.outputFileName)
+			} else if existErr!=nil {
+				log.Printf("[%s] - error checking output existence: %s", job.inputFileName, existErr)
+			}
+		}
 		log.Printf("[%s] Completed processing, %s", job.inputFileName, errStr)
 		resultsChan <- result
 	}
