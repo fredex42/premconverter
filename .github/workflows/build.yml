@@ -17,12 +17,18 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: 1.17
+      - name: Make GITHUB_RUN_NUMBER env var available outside of shells
+        working-directory: ${{env.GITHUB_WORKSPACE}}
+        shell: bash
+        run: |
+          echo GITHUB_RUN_NUMBER=$(( GITHUB_RUN_NUMBER + 279 ))>> $GITHUB_ENV
       - run: make test
       - run: make
       - name: Bundle output
-        run: cd bin && zip ../premconverter-$(( GITHUB_RUN_NUMBER )).zip premconverter*
+        shell: bash
+        run: echo Build number is $(( GITHUB_RUN_NUMBER )); cd bin && zip ../premconverter-$(( GITHUB_RUN_NUMBER )).zip premconverter*
       - name: Store artifacts
         uses: actions/upload-artifact@v3
         with:
           name: premconverter
-          path: premconverter-${{ github.GITHUB_RUN_NUMBER }}.zip
+          path: premconverter-${{ github.run_number }}.zip
