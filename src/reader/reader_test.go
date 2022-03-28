@@ -29,7 +29,7 @@ func TestScanOK(t *testing.T) {
 	expected := `<?xml version="1.0" encoding="UTF-8" ?>
 <PremiereData Version="3">
         <Project ObjectRef="1"/>
-        <Project ObjectID="1" ClassID="62ad66dd-0dcd-42da-a660-6d8fbde94876" Version="35">
+        <Project ObjectID="1" ClassID="62ad66dd-0dcd-42da-a660-6d8fbde94876" Version="39">
                 <Node Version="1">
                         <Properties Version="1">
                                 <ProjectViewState.List ObjectID="2" ClassID="aab0946f-7a21-4425-8908-fafa2119e30e" Version="3">
