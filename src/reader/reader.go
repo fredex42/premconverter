@@ -14,7 +14,7 @@ import (
 	"strconv"
 )
 
-const REPLACEMENT_VERSION = 35
+const REPLACEMENT_VERSION = 39
 
 func CheckFileExist(filePath string) (bool, error) {
 	_, err := os.Stat(filePath)
